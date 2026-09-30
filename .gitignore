@@ -1,0 +1,25 @@
+# Dependencias (se reinstalan con npm install)
+node_modules/
+
+# Compilados
+dist/
+build/
+
+# SECRETOS: nunca se suben
+.env
+.env.local
+*.pem
+serviceAccount*.json
+
+# Datos locales de los emuladores de Firebase y logs
+firebase/emulator-data/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*.log
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
