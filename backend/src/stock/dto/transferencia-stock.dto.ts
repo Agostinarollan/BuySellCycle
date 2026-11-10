@@ -1,0 +1,24 @@
+import { IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+
+export class TransferenciaStockDto {
+  @Min(1, { message: 'Debe ser mayor a 0' })
+  @IsInt({ message: 'El producto es obligatorio' })
+  productoId: number;
+
+  @Min(1, { message: 'Debe ser mayor a 0' })
+  @IsInt({ message: 'El depósito de origen es obligatorio' })
+  depositoOrigenId: number;
+
+  @Min(1, { message: 'Debe ser mayor a 0' })
+  @IsInt({ message: 'El depósito de destino es obligatorio' })
+  depositoDestinoId: number;
+
+  @Min(1, { message: 'La cantidad debe ser mayor a 0' })
+  @IsInt({ message: 'La cantidad debe ser un número entero' })
+  cantidad: number;
+
+  @IsOptional()
+  @MaxLength(255, { message: 'Admite hasta 255 caracteres' })
+  @IsString({ message: 'Debe ser un texto' })
+  observacion?: string;
+}

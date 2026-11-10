@@ -1,0 +1,382 @@
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------- ENUMS -----------------------------
+
+enum EstadoProducto {
+  DISPONIBLE
+  ACTIVO
+  INACTIVO
+}
+
+enum RolUsuario {
+  ADMINISTRACION
+  VENDEDOR
+}
+
+enum TipoMovimientoStock {
+  INGRESO
+  EGRESO
+  TRANSFERENCIA
+}
+
+enum TipoTarjeta {
+  CREDITO
+  DEBITO
+}
+
+enum ModoPago {
+  CONTADO
+  PLAN
+}
+
+enum TipoEntrega {
+  RETIRO_SUCURSAL
+  DOMICILIO
+}
+
+enum EstadoVenta {
+  EN_PREPARACION
+  DISPONIBLE_PARA_RETIRAR
+  EN_CAMINO
+  ENTREGADO
+  CANCELADO
+}
+
+// ------------------------- UBICACIÓN (seed) ------------------
+
+model Provincia {
+  id                 Int         @id @default(autoincrement())
+  nombre             String      @unique @db.VarChar(100)
+  archivado          Boolean     @default(false)
+  fechaCreacion      DateTime    @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime    @updatedAt @map("fecha_actualizacion")
+  localidades        Localidad[]
+  depositos          Deposito[]
+  sucursales         Sucursal[]
+  clientes           Cliente[]
+}
+
+model Localidad {
+  id                 Int        @id @default(autoincrement())
+  nombre             String     @db.VarChar(100)
+  provinciaId        Int
+  provincia          Provincia  @relation(fields: [provinciaId], references: [id])
+  archivado          Boolean    @default(false)
+  fechaCreacion      DateTime   @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime   @updatedAt @map("fecha_actualizacion")
+  depositos          Deposito[]
+  sucursales         Sucursal[]
+  clientes           Cliente[]
+
+  @@unique([nombre, provinciaId])
+}
+
+// ------------------------- CATÁLOGOS (Guía 1) ----------------
+
+model Marca {
+  id                 Int        @id @default(autoincrement())
+  nombre             String     @unique @db.VarChar(100)
+  archivado          Boolean    @default(false)
+  fechaCreacion      DateTime   @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime   @updatedAt @map("fecha_actualizacion")
+  productos          Producto[]
+}
+
+model CategoriaNivel1 {
+  id                 Int               @id @default(autoincrement())
+  nombre             String            @unique @db.VarChar(100)
+  archivado          Boolean           @default(false)
+  fechaCreacion      DateTime          @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime          @updatedAt @map("fecha_actualizacion")
+  categoriasNivel2   CategoriaNivel2[]
+}
+
+model CategoriaNivel2 {
+  id                 Int             @id @default(autoincrement())
+  nombre             String          @db.VarChar(100)
+  categoriaNivel1Id  Int
+  categoriaNivel1    CategoriaNivel1 @relation(fields: [categoriaNivel1Id], references: [id])
+  archivado          Boolean         @default(false)
+  fechaCreacion      DateTime        @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime        @updatedAt @map("fecha_actualizacion")
+  productos          Producto[]
+
+  @@unique([nombre, categoriaNivel1Id])
+}
+
+model Deposito {
+  id                 Int                     @id @default(autoincrement())
+  codigo             String                  @unique @db.VarChar(10)
+  nombre             String                  @db.VarChar(100)
+  provinciaId        Int
+  provincia          Provincia               @relation(fields: [provinciaId], references: [id])
+  localidadId        Int
+  localidad          Localidad               @relation(fields: [localidadId], references: [id])
+  archivado          Boolean                 @default(false)
+  fechaCreacion      DateTime                @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime                @updatedAt @map("fecha_actualizacion")
+  stocks             StockProductoDeposito[]
+  movimientosOrigen  MovimientoStock[]       @relation("DepositoOrigen")
+  movimientosDestino MovimientoStock[]       @relation("DepositoDestino")
+}
+
+model Sucursal {
+  id                 Int        @id @default(autoincrement())
+  nombre             String     @db.VarChar(100)
+  provinciaId        Int
+  provincia          Provincia  @relation(fields: [provinciaId], references: [id])
+  localidadId        Int
+  localidad          Localidad  @relation(fields: [localidadId], references: [id])
+  archivado          Boolean    @default(false)
+  fechaCreacion      DateTime   @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime   @updatedAt @map("fecha_actualizacion")
+  usuarios           Usuario[]
+  ventas             Venta[]
+}
+
+model Usuario {
+  id                 Int           @id @default(autoincrement())
+  nombre             String        @db.VarChar(100)
+  apellido           String        @db.VarChar(100)
+  dni                String        @unique @db.VarChar(10)
+  nombreUsuario      String        @unique @db.VarChar(50)
+  rol                RolUsuario
+  sucursalId         Int
+  sucursal           Sucursal      @relation(fields: [sucursalId], references: [id])
+  archivado          Boolean       @default(false)
+  fechaCreacion      DateTime      @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime      @updatedAt @map("fecha_actualizacion")
+  ventas             Venta[]
+  presupuestos       Presupuesto[]
+}
+
+model Cliente {
+  id                 Int                @id @default(autoincrement())
+  nombre             String             @db.VarChar(100)
+  apellido           String             @db.VarChar(100)
+  dni                String             @unique @db.VarChar(10)
+  email              String             @db.VarChar(150)
+  provinciaId        Int
+  provincia          Provincia          @relation(fields: [provinciaId], references: [id])
+  localidadId        Int
+  localidad          Localidad          @relation(fields: [localidadId], references: [id])
+  archivado          Boolean            @default(false)
+  fechaCreacion      DateTime           @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime           @updatedAt @map("fecha_actualizacion")
+  direcciones        DireccionEntrega[]
+  ventas             Venta[]
+  presupuestos       Presupuesto[]
+}
+
+model Proveedor {
+  id                 Int               @id @default(autoincrement())
+  razonSocial        String            @db.VarChar(150)
+  cuit               String            @unique @db.VarChar(13)
+  archivado          Boolean           @default(false)
+  fechaCreacion      DateTime          @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime          @updatedAt @map("fecha_actualizacion")
+  movimientos        MovimientoStock[]
+}
+
+// ------------------------- PRODUCTO Y STOCK ------------------
+
+model Producto {
+  id                             Int                     @id @default(autoincrement())
+  nombre                         String                  @db.VarChar(150)
+  stockTotal                     Int                     @default(0)
+  costoNeto                      Decimal                 @db.Decimal(12, 2)
+  utilidad                       Decimal                 @db.Decimal(5, 2)
+  precioLista                    Decimal                 @db.Decimal(12, 2)
+  descuentoContado               Decimal                 @db.Decimal(5, 2)
+  precioContado                  Decimal                 @db.Decimal(12, 2)
+  estado                         EstadoProducto          @default(DISPONIBLE)
+  fechaUltimoMovimientoStock     DateTime?
+  fechaUltimaSincronizacionStock DateTime?
+  rutaImagen                     String?                 @db.VarChar(255)
+  marcaId                        Int
+  marca                          Marca                   @relation(fields: [marcaId], references: [id])
+  categoriaNivel2Id              Int
+  categoriaNivel2                CategoriaNivel2         @relation(fields: [categoriaNivel2Id], references: [id])
+  archivado                      Boolean                 @default(false)
+  fechaCreacion                  DateTime                @default(now()) @map("fecha_creacion")
+  fechaActualizacion             DateTime                @updatedAt @map("fecha_actualizacion")
+  stocks                         StockProductoDeposito[]
+  movimientos                    MovimientoStock[]
+  detallesVenta                  DetalleVenta[]
+  detallesPresupuesto            DetallePresupuesto[]
+}
+
+model StockProductoDeposito {
+  id                 Int      @id @default(autoincrement())
+  productoId         Int
+  producto           Producto @relation(fields: [productoId], references: [id])
+  depositoId         Int
+  deposito           Deposito @relation(fields: [depositoId], references: [id])
+  stock              Int      @default(0)
+  archivado          Boolean  @default(false)
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  @@unique([productoId, depositoId])
+}
+
+model MovimientoStock {
+  id                 Int                 @id @default(autoincrement())
+  tipo               TipoMovimientoStock
+  cantidad           Int
+  productoId         Int
+  producto           Producto            @relation(fields: [productoId], references: [id])
+  depositoOrigenId   Int?
+  depositoOrigen     Deposito?           @relation("DepositoOrigen", fields: [depositoOrigenId], references: [id])
+  depositoDestinoId  Int?
+  depositoDestino    Deposito?           @relation("DepositoDestino", fields: [depositoDestinoId], references: [id])
+  proveedorId        Int?
+  proveedor          Proveedor?          @relation(fields: [proveedorId], references: [id])
+  ventaId            Int?
+  venta              Venta?              @relation(fields: [ventaId], references: [id])
+  observacion        String?             @db.VarChar(255)
+  archivado          Boolean             @default(false)
+  fechaCreacion      DateTime            @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime            @updatedAt @map("fecha_actualizacion")
+}
+
+// ------------------------- PRESUPUESTO (Guía 1) --------------
+
+model Presupuesto {
+  id                 Int                  @id @default(autoincrement())
+  clienteId          Int
+  cliente            Cliente              @relation(fields: [clienteId], references: [id])
+  usuarioId          Int?
+  usuario            Usuario?             @relation(fields: [usuarioId], references: [id])
+  fechaVencimiento   DateTime
+  observaciones      String?              @db.VarChar(500)
+  totalContado       Decimal              @db.Decimal(12, 2)
+  totalLista         Decimal              @db.Decimal(12, 2)
+  archivado          Boolean              @default(false)
+  fechaCreacion      DateTime             @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime             @updatedAt @map("fecha_actualizacion")
+  detalles           DetallePresupuesto[]
+}
+
+model DetallePresupuesto {
+  id                 Int         @id @default(autoincrement())
+  presupuestoId      Int
+  presupuesto        Presupuesto @relation(fields: [presupuestoId], references: [id])
+  productoId         Int
+  producto           Producto    @relation(fields: [productoId], references: [id])
+  cantidad           Int
+  precioContado      Decimal     @db.Decimal(12, 2)
+  precioLista        Decimal     @db.Decimal(12, 2)
+  subtotalContado    Decimal     @db.Decimal(12, 2)
+  subtotalLista      Decimal     @db.Decimal(12, 2)
+  archivado          Boolean     @default(false)
+  fechaCreacion      DateTime    @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime    @updatedAt @map("fecha_actualizacion")
+}
+
+// ------------------------- GUÍA 2: CLIENTE -------------------
+
+model DireccionEntrega {
+  id                 Int      @id @default(autoincrement())
+  clienteId          Int
+  cliente            Cliente  @relation(fields: [clienteId], references: [id])
+  direccion          String   @db.VarChar(255)
+  esPrincipal        Boolean  @default(false)
+  archivado          Boolean  @default(false)
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+}
+
+// ------------------------- GUÍA 2: FINANCIACIÓN --------------
+
+model Tarjeta {
+  id                 Int         @id @default(autoincrement())
+  nombre             String      @db.VarChar(100)
+  tipo               TipoTarjeta
+  rutaImagen         String?     @db.VarChar(255)
+  archivado          Boolean     @default(false)
+  fechaCreacion      DateTime    @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime    @updatedAt @map("fecha_actualizacion")
+  planes             Plan[]
+
+  @@unique([nombre, tipo])
+}
+
+model Banco {
+  id                 Int      @id @default(autoincrement())
+  nombre             String   @unique @db.VarChar(100)
+  archivado          Boolean  @default(false)
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+  planes             Plan[]
+}
+
+model Plan {
+  id                 Int      @id @default(autoincrement())
+  tarjetaId          Int
+  tarjeta            Tarjeta  @relation(fields: [tarjetaId], references: [id])
+  bancoId            Int
+  banco              Banco    @relation(fields: [bancoId], references: [id])
+  cantidadCuotas     Int
+  tasaFinanciacion   Decimal  @db.Decimal(6, 2)
+  observaciones      String?  @db.VarChar(500)
+  archivado          Boolean  @default(false)
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+  ventas             Venta[]
+
+  @@unique([tarjetaId, bancoId, cantidadCuotas])
+}
+
+// ------------------------- GUÍA 2: VENTA ---------------------
+
+model Venta {
+  id                    Int               @id @default(autoincrement())
+  clienteId             Int
+  cliente               Cliente           @relation(fields: [clienteId], references: [id])
+  usuarioId             Int
+  usuario               Usuario           @relation(fields: [usuarioId], references: [id])
+  modoPago              ModoPago
+  planId                Int?
+  plan                  Plan?             @relation(fields: [planId], references: [id])
+  cantidadCuotas        Int?
+  tasaFinanciacion      Decimal?          @db.Decimal(6, 2)
+  tipoEntrega           TipoEntrega
+  sucursalId            Int?
+  sucursal              Sucursal?         @relation(fields: [sucursalId], references: [id])
+  direccionEntrega      String?           @db.VarChar(255)
+  estado                EstadoVenta       @default(EN_PREPARACION)
+  motivoCancelacion     String?           @db.VarChar(500)
+  subtotal              Decimal           @db.Decimal(12, 2)
+  total                 Decimal           @db.Decimal(12, 2)
+  montoCuota            Decimal?          @db.Decimal(12, 2)
+  fechaUltimoEnvioEmail DateTime?
+  archivado             Boolean           @default(false)
+  fechaCreacion         DateTime          @default(now()) @map("fecha_creacion")
+  fechaActualizacion    DateTime          @updatedAt @map("fecha_actualizacion")
+  detalles              DetalleVenta[]
+  movimientos           MovimientoStock[]
+}
+
+model DetalleVenta {
+  id                 Int      @id @default(autoincrement())
+  ventaId            Int
+  venta              Venta    @relation(fields: [ventaId], references: [id])
+  productoId         Int
+  producto           Producto @relation(fields: [productoId], references: [id])
+  cantidad           Int
+  precioUnitario     Decimal  @db.Decimal(12, 2)
+  subtotal           Decimal  @db.Decimal(12, 2)
+  archivado          Boolean  @default(false)
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+}
